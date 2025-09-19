@@ -2,22 +2,28 @@ import React, { useState } from "react";
 
 const CharacterInfo = () => {
     const [nickname, setNickname] = useState("");
-    const [result, setResult] = useState("");
+    const [character, setCharacter] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [selectedItemIndex, setSelectedItemIndex] = useState(null);
 
     const handleFetch = async () => {
         if (!nickname) return;
 
         setLoading(true);
-        setResult("");
+        setCharacter(null);
+        setSelectedItemIndex(null);
 
         try {
-            const response = await fetch(`http://localhost:8080/api/maple/nickname?name=${nickname}`);
-            const text = await response.text(); // 문자열 그대로 가져오기
+            const response = await fetch(`http://localhost:8080/api/maple/character?name=${nickname}`);
+            const data = await response.json();
 
-            setResult(text); // 성공/실패 메시지 모두 표시
+            if (response.ok) {
+                setCharacter(data);
+            } else {
+                setCharacter({ error: data.error || "조회 실패" });
+            }
         } catch (error) {
-            setResult("API 호출 실패");
+            setCharacter({ error: "API 호출 실패" });
             console.error(error);
         }
 
@@ -39,7 +45,42 @@ const CharacterInfo = () => {
             </button>
 
             {loading && <p>조회 중...</p>}
-            {result && <p>결과: {result}</p>}
+
+            {character && character.error && <p style={{ color: "red" }}>결과: {character.error}</p>}
+
+            {character && character.basic && (
+                <div style={{ marginTop: "20px" }}>
+                    <h3>캐릭터: {character.basic.character_name}</h3>
+
+                    <label>
+                        착용 아이템:
+                        <select
+                            onChange={(e) => setSelectedItemIndex(e.target.value)}
+                            defaultValue=""
+                            style={{ marginLeft: "10px" }}
+                        >
+                            <option value="">선택하세요</option>
+                            {character.items &&
+                                character.items.map((item, index) => (
+                                    <option key={index} value={index}>
+                                        {item.item_name}
+                                    </option>
+                                ))}
+                        </select>
+                    </label>
+
+                    {selectedItemIndex !== null && selectedItemIndex !== "" && character.items[selectedItemIndex] && (
+                        <div style={{ marginTop: "20px" }}>
+                            <h4>{character.items[selectedItemIndex].item_name}</h4>
+                            <img
+                                src={character.items[selectedItemIndex].item_icon}
+                                alt={character.items[selectedItemIndex].item_name}
+                            />
+                            <p>{character.items[selectedItemIndex].item_description}</p>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
